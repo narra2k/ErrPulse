@@ -21,12 +21,16 @@
     "docs:generate": "tsx scripts/generate-docs.ts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "pnpm docs:generate && vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "lint-staged": {
     "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,css,md,yml,yaml,html,svg,vue}": "prettier --write"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/node": "^22.10.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.1",

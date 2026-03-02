@@ -18,6 +18,9 @@
     "errpulse",
     "sentry-alternative"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "errpulse": "./dist/index.js"
