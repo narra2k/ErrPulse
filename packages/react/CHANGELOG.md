@@ -1,5 +1,11 @@
 # @errpulse/react
 
+## 0.1.2
+
+### Patch Changes
+
+- f87e47d: Add README.md to all packages so npm package pages show install instructions, usage examples, and links to full docs
+
 ## 0.1.1
 
 ### Patch Changes
