@@ -42,7 +42,22 @@ jobs:
           publish: pnpm release
           title: "chore: version packages"
           commit: "chore: version packages"
-          createGithubReleases: aggregate
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create aggregate GitHub Release
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          VERSION=$(node -p "require('./packages/core/package.json').version")
+          PACKAGES=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[].name' | sed 's/^/- /' )
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes "## Published Packages
+
+          ${PACKAGES}
+
+          See individual package CHANGELOGs for details."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
