@@ -10,7 +10,7 @@ export default defineConfig({
       {
         rel: "icon",
         type: "image/svg+xml",
-        href: "/logo.svg",
+        href: "/ErrPulse/logo.svg",
       },
     ],
     [

@@ -23,6 +23,9 @@ function printHelp(): void {
     npx errpulse
     npx errpulse start --port 4000
     npx errpulse clear
+
+  Docs:
+    https://meghshyams.github.io/ErrPulse/
   `);
 }
 

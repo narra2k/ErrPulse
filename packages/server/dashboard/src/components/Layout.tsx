@@ -1,15 +1,8 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useProject } from "../context/ProjectContext";
-import { useState, useCallback } from "react";
-import {
-  LayoutDashboard,
-  AlertTriangle,
-  Globe,
-  Activity,
-  ChevronDown,
-  FolderOpen,
-} from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { LayoutDashboard, AlertTriangle, Globe, Activity, BookOpen } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const NAV_ITEMS = [
@@ -18,10 +11,39 @@ const NAV_ITEMS = [
   { to: "/requests", icon: Globe, label: "Requests" },
 ];
 
+const PROJECT_COLORS = [
+  "#f43f5e",
+  "#3b82f6",
+  "#f59e0b",
+  "#10b981",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#84cc16",
+];
+
+function getProjectColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return PROJECT_COLORS[Math.abs(hash) % PROJECT_COLORS.length];
+}
+
+function getInitials(name: string): string {
+  const parts = name.split(/[-_./\s]+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 export function Layout() {
   const [liveCount, setLiveCount] = useState(0);
-  const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
+  const [projectPopover, setProjectPopover] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const { projects, selectedProjectId, setProjectId } = useProject();
+  const location = useLocation();
 
   const handleMessage = useCallback(() => {
     setLiveCount((c) => c + 1);
@@ -32,118 +54,169 @@ export function Layout() {
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
+  // Close popover on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setProjectPopover(false);
+      }
+    }
+    if (projectPopover) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [projectPopover]);
+
+  // Page title for the top bar
+  const pageTitle =
+    NAV_ITEMS.find((item) =>
+      item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+    )?.label ?? "Overview";
+
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 border-r border-border/50 bg-card/50 flex flex-col">
-        {/* Brand */}
-        <div className="h-14 flex items-center gap-2.5 px-5 border-b border-border/50">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Activity className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} />
+      {/* Icon Rail */}
+      <aside className="w-[52px] flex-shrink-0 bg-[#08080a] flex flex-col items-center border-r border-border/30">
+        {/* Brand mark */}
+        <div className="h-[52px] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-[10px] bg-primary/10 border border-primary/25 flex items-center justify-center">
+            <Activity className="w-4 h-4 text-primary" strokeWidth={2.5} />
           </div>
-          <span className="font-semibold text-[15px] tracking-tight">
-            err<span className="text-primary font-bold">pulse</span>
-          </span>
         </div>
 
-        {/* Project Selector */}
-        {projects.length > 0 && (
-          <div className="px-3 pt-3 pb-1">
-            <div className="relative">
-              <button
-                onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-[12px] font-medium bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors"
-              >
-                <FolderOpen className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="truncate text-foreground">
-                  {selectedProject ? selectedProject.name : "All Projects"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "w-3.5 h-3.5 text-muted-foreground ml-auto flex-shrink-0 transition-transform",
-                    projectDropdownOpen && "rotate-180"
-                  )}
-                />
-              </button>
-              {projectDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setProjectDropdownOpen(false)}
-                  />
-                  <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-card border border-border/50 rounded-md shadow-lg py-1 max-h-48 overflow-y-auto">
-                    <button
-                      onClick={() => {
-                        setProjectId(null);
-                        setProjectDropdownOpen(false);
-                      }}
-                      className={cn(
-                        "w-full text-left px-3 py-1.5 text-[12px] hover:bg-muted/50 transition-colors",
-                        !selectedProjectId ? "text-primary font-medium" : "text-muted-foreground"
-                      )}
-                    >
-                      All Projects
-                    </button>
-                    {projects.map((project) => (
-                      <button
-                        key={project.id}
-                        onClick={() => {
-                          setProjectId(project.id);
-                          setProjectDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "w-full text-left px-3 py-1.5 text-[12px] hover:bg-muted/50 transition-colors",
-                          selectedProjectId === project.id
-                            ? "text-primary font-medium"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {project.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav className="flex-1 py-3 px-3 space-y-0.5">
+        {/* Nav icons */}
+        <nav className="flex-1 flex flex-col items-center gap-1 pt-4">
           {NAV_ITEMS.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              title={label}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
+                  "group relative w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150",
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "text-primary"
+                    : "text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04]"
                 )
               }
             >
-              <Icon className="w-4 h-4" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  {/* Active indicator bar */}
+                  {isActive && (
+                    <div className="absolute left-[-14px] w-[3px] h-4 rounded-r-full bg-primary" />
+                  )}
+                  <Icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2.2 : 1.8} />
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Connection status */}
-        <div className="px-4 py-3 border-t border-border/50">
-          <div className="flex items-center gap-2">
+        {/* Bottom: Project selector + Live status */}
+        <div className="flex flex-col items-center gap-3 pb-4">
+          {/* Project initial */}
+          {projects.length > 0 && (
+            <div className="relative" ref={popoverRef}>
+              <button
+                onClick={() => setProjectPopover(!projectPopover)}
+                title={selectedProject ? selectedProject.name : "All Projects"}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold tracking-wide transition-transform hover:scale-110 active:scale-95"
+                style={{
+                  backgroundColor: selectedProject
+                    ? getProjectColor(selectedProject.name) + "20"
+                    : "#ffffff08",
+                  color: selectedProject ? getProjectColor(selectedProject.name) : "#a1a1aa",
+                  border: `1.5px solid ${selectedProject ? getProjectColor(selectedProject.name) + "40" : "#ffffff10"}`,
+                }}
+              >
+                {selectedProject ? getInitials(selectedProject.name) : "ALL"}
+              </button>
+
+              {/* Project popover */}
+              {projectPopover && (
+                <div className="absolute bottom-0 left-[calc(100%+8px)] z-50 w-48 bg-[#111113] border border-border/50 rounded-lg shadow-2xl shadow-black/50 py-1.5 animate-fade-up">
+                  <div className="px-3 py-1.5 text-[10px] font-medium tracking-widest uppercase text-muted-foreground/50">
+                    Projects
+                  </div>
+                  <button
+                    onClick={() => {
+                      setProjectId(null);
+                      setProjectPopover(false);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-[12px] flex items-center gap-2.5 hover:bg-white/[0.04] transition-colors",
+                      !selectedProjectId ? "text-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    <div className="w-5 h-5 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-[8px] font-bold text-muted-foreground">
+                      *
+                    </div>
+                    All Projects
+                    {!selectedProjectId && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                  </button>
+                  {projects.map((project) => {
+                    const color = getProjectColor(project.name);
+                    return (
+                      <button
+                        key={project.id}
+                        onClick={() => {
+                          setProjectId(project.id);
+                          setProjectPopover(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-[12px] flex items-center gap-2.5 hover:bg-white/[0.04] transition-colors",
+                          selectedProjectId === project.id
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <div
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold"
+                          style={{
+                            backgroundColor: color + "20",
+                            color: color,
+                            border: `1px solid ${color}30`,
+                          }}
+                        >
+                          {getInitials(project.name)}
+                        </div>
+                        {project.name}
+                        {selectedProjectId === project.id && (
+                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Docs link */}
+          <a
+            href="https://meghshyams.github.io/ErrPulse/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Documentation"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04] transition-all"
+          >
+            <BookOpen className="w-[18px] h-[18px]" strokeWidth={1.8} />
+          </a>
+
+          {/* Live indicator */}
+          <div className="relative" title={connected ? "Connected" : "Disconnected"}>
             <div
               className={cn(
-                "w-1.5 h-1.5 rounded-full",
+                "w-2 h-2 rounded-full",
                 connected ? "bg-success live-dot text-success" : "bg-destructive"
               )}
             />
-            <span className="text-[11px] text-muted-foreground font-mono">
-              {connected ? "LIVE" : "DISCONNECTED"}
-            </span>
             {liveCount > 0 && (
-              <span className="ml-auto text-[10px] font-mono text-primary animate-fade-up">
+              <span className="absolute -top-2.5 -right-2.5 text-[9px] font-mono font-bold text-primary animate-fade-up">
                 +{liveCount}
               </span>
             )}
@@ -151,10 +224,28 @@ export function Layout() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
-      </main>
+      {/* Main area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Slim top bar */}
+        <header className="h-11 flex items-center px-5 border-b border-border/30 bg-[#08080a]/50 flex-shrink-0">
+          <span className="text-[13px] font-medium text-foreground/80">{pageTitle}</span>
+          {selectedProject && (
+            <span className="ml-3 text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-muted-foreground border border-border/30">
+              {selectedProject.name}
+            </span>
+          )}
+          {liveCount > 0 && (
+            <span className="ml-auto text-[10px] font-mono text-primary/70 animate-fade-up">
+              {liveCount} incoming
+            </span>
+          )}
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

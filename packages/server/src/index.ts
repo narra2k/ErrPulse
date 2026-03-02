@@ -38,7 +38,8 @@ export async function startServer(partial?: Partial<ServerConfig>): Promise<{
       console.log(`\n  ErrPulse running at http://localhost:${config.port}\n`);
       console.log(`  Dashboard:  http://localhost:${config.port}`);
       console.log(`  API:        http://localhost:${config.port}/api`);
-      console.log(`  WebSocket:  ws://localhost:${config.port}/ws\n`);
+      console.log(`  WebSocket:  ws://localhost:${config.port}/ws`);
+      console.log(`  Docs:       https://meghshyams.github.io/ErrPulse/\n`);
 
       const close = () => {
         server.close();
