@@ -1,5 +1,13 @@
 # @errpulse/server
 
+## 0.1.2
+
+### Patch Changes
+
+- f87e47d: Add README.md to all packages so npm package pages show install instructions, usage examples, and links to full docs
+- Updated dependencies [f87e47d]
+  - @errpulse/core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
